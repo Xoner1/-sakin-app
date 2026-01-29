@@ -47,17 +47,31 @@ class HiveDatabase with ChangeNotifier {
   }
 
   // العادات (الصلاة) - مفتاح اليوم + اسم الصلاة
-  bool getHabitStatus(String prayerName) {
-    // المفتاح يكون مثل: 2024-01-26_Fajr
-    final today = DateTime.now().toString().split(' ')[0];
-    final key = "${today}_$prayerName";
+  bool getHabitStatus(String prayerName, {DateTime? date}) {
+    final d = date ?? DateTime.now();
+    final dateStr = d.toString().split(' ')[0];
+    final key = "${dateStr}_$prayerName";
     return _habitsBox.get(key, defaultValue: false);
   }
 
-  Future<void> toggleHabit(String prayerName) async {
-    final today = DateTime.now().toString().split(' ')[0];
-    final key = "${today}_$prayerName";
-    final current = getHabitStatus(prayerName);
+  // الحصول على عدد الصلوات المكتملة في يوم معين
+  int getPrayersCountForDay(DateTime date) {
+    final dateStr = date.toString().split(' ')[0];
+    int count = 0;
+    final prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+    for (var p in prayers) {
+      if (_habitsBox.get("${dateStr}_$p", defaultValue: false)) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  Future<void> toggleHabit(String prayerName, {DateTime? date}) async {
+    final d = date ?? DateTime.now();
+    final dateStr = d.toString().split(' ')[0];
+    final key = "${dateStr}_$prayerName";
+    final current = getHabitStatus(prayerName, date: d);
     await _habitsBox.put(key, !current);
     notifyListeners();
   }

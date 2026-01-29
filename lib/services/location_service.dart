@@ -48,6 +48,7 @@ class LocationService with ChangeNotifier {
       }
 
       // جلب الموقع
+      // جلب الموقع
       Position position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
@@ -104,7 +105,9 @@ class LocationService with ChangeNotifier {
       final box = await Hive.openBox('settings');
       final cachedData = box.get('cached_location');
       if (cachedData != null) {
-        _currentLocation = LocationInfo.fromJson(cachedData);
+        // تحويل Map بشكل صحيح
+        final jsonData = Map<String, dynamic>.from(cachedData);
+        _currentLocation = LocationInfo.fromJson(jsonData);
         // تحديث الوضع إلى cached
         _currentLocation = LocationInfo(
           latitude: _currentLocation!.latitude,

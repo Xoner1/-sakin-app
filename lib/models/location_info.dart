@@ -1,13 +1,40 @@
+import 'package:hive/hive.dart';
+
+part 'location_info.g.dart';
+
+/// أوضاع الموقع المدعومة.
+@HiveType(typeId: 2)
 enum LocationMode {
-  cached, // الموقع محفوظ (لا يوجد إنترنت)
-  live // الموقع مباشر (GPS)
+  /// الموقع محفوظ محلياً (لا يوجد إنترنت).
+  @HiveField(0)
+  cached,
+
+  /// الموقع يتم جلبه مباشرة عبر GPS.
+  @HiveField(1)
+  live,
+
+  /// الموقع تم إدخاله يدوياً.
+  @HiveField(2)
+  manual,
 }
 
+/// نموذج معلومات الموقع.
+/// يستخدم لتخزين الإحداثيات والعنوان وحالة تحديث الموقع.
+@HiveType(typeId: 3)
 class LocationInfo {
+  @HiveField(0)
   final double latitude;
+
+  @HiveField(1)
   final double longitude;
+
+  @HiveField(2)
   final String address;
+
+  @HiveField(3)
   final LocationMode mode;
+
+  @HiveField(4)
   final DateTime lastUpdated;
 
   LocationInfo({
@@ -18,36 +45,41 @@ class LocationInfo {
     DateTime? lastUpdated,
   }) : lastUpdated = lastUpdated ?? DateTime.now();
 
-  LocationInfo copy() {
+  /// إنشاء نسخة جديدة من معلومات الموقع مع إمكانية تعديل بعض الحلقول.
+  LocationInfo copyWith({
+    double? latitude,
+    double? longitude,
+    String? address,
+    LocationMode? mode,
+    DateTime? lastUpdated,
+  }) {
     return LocationInfo(
-      latitude: latitude,
-      longitude: longitude,
-      address: address,
-      mode: mode,
-      lastUpdated: lastUpdated,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      address: address ?? this.address,
+      mode: mode ?? this.mode,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
     );
   }
 
-  // تحويل إلى Map للحفظ في Hive
+  /// تحويل البيانات إلى [Map] للحفظ كخيار بديل.
   Map<String, dynamic> toJson() {
     return {
       'latitude': latitude,
       'longitude': longitude,
       'address': address,
-      'mode': mode.toString(),
+      'mode': mode.name,
       'lastUpdated': lastUpdated.toIso8601String(),
     };
   }
 
-  // إنشاء من Map
+  /// إنشاء كائن [LocationInfo] من [Map].
   factory LocationInfo.fromJson(Map<String, dynamic> json) {
     return LocationInfo(
       latitude: json['latitude'],
       longitude: json['longitude'],
       address: json['address'],
-      mode: json['mode'] == 'LocationMode.live'
-          ? LocationMode.live
-          : LocationMode.cached,
+      mode: LocationMode.values.byName(json['mode'] ?? 'cached'),
       lastUpdated: DateTime.parse(json['lastUpdated']),
     );
   }

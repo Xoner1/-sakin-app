@@ -1,14 +1,28 @@
 import 'package:adhan/adhan.dart';
+import 'package:hive/hive.dart';
 
-/// نموذج إعدادات التنبيهات لكل صلاة
+part 'prayer_notification_settings.g.dart';
+
+/// نموذج إعدادات التنبيهات لكل صلاة.
+/// يستخدم لإدارة تفعيل أو تعطيل التنبيهات لكل صلاة بشكل مستقل.
+@HiveType(typeId: 1)
 class PrayerNotificationSettings {
-  bool fajrEnabled;
-  bool dhuhrEnabled;
-  bool asrEnabled;
-  bool maghribEnabled;
-  bool ishaEnabled;
+  @HiveField(0)
+  final bool fajrEnabled;
 
-  PrayerNotificationSettings({
+  @HiveField(1)
+  final bool dhuhrEnabled;
+
+  @HiveField(2)
+  final bool asrEnabled;
+
+  @HiveField(3)
+  final bool maghribEnabled;
+
+  @HiveField(4)
+  final bool ishaEnabled;
+
+  const PrayerNotificationSettings({
     this.fajrEnabled = true,
     this.dhuhrEnabled = true,
     this.asrEnabled = true,
@@ -16,7 +30,7 @@ class PrayerNotificationSettings {
     this.ishaEnabled = true,
   });
 
-  // التحقق من تفعيل صلاة معينة
+  /// التحقق من تفعيل تنبيه صلاة معينة.
   bool isPrayerEnabled(Prayer prayer) {
     switch (prayer) {
       case Prayer.fajr:
@@ -34,7 +48,7 @@ class PrayerNotificationSettings {
     }
   }
 
-  // تحويل إلى Map للحفظ في Hive
+  /// تحويل كائن الإعدادات إلى [Map] كدعم إضافي بجانب Hive.
   Map<String, dynamic> toJson() {
     return {
       'fajr': fajrEnabled,
@@ -45,7 +59,7 @@ class PrayerNotificationSettings {
     };
   }
 
-  // إنشاء من Map
+  /// إنشاء كائن [PrayerNotificationSettings] من [Map].
   factory PrayerNotificationSettings.fromJson(Map<String, dynamic> json) {
     return PrayerNotificationSettings(
       fajrEnabled: json['fajr'] ?? true,
@@ -56,14 +70,21 @@ class PrayerNotificationSettings {
     );
   }
 
-  // نسخة من الإعدادات
-  PrayerNotificationSettings copy() {
+  /// إنشاء نسخة جديدة من الإعدادات مع تعديل بعض الحقول.
+  /// يساعد في الحفاظ على الجمود (Immutability).
+  PrayerNotificationSettings copyWith({
+    bool? fajrEnabled,
+    bool? dhuhrEnabled,
+    bool? asrEnabled,
+    bool? maghribEnabled,
+    bool? ishaEnabled,
+  }) {
     return PrayerNotificationSettings(
-      fajrEnabled: fajrEnabled,
-      dhuhrEnabled: dhuhrEnabled,
-      asrEnabled: asrEnabled,
-      maghribEnabled: maghribEnabled,
-      ishaEnabled: ishaEnabled,
+      fajrEnabled: fajrEnabled ?? this.fajrEnabled,
+      dhuhrEnabled: dhuhrEnabled ?? this.dhuhrEnabled,
+      asrEnabled: asrEnabled ?? this.asrEnabled,
+      maghribEnabled: maghribEnabled ?? this.maghribEnabled,
+      ishaEnabled: ishaEnabled ?? this.ishaEnabled,
     );
   }
 }

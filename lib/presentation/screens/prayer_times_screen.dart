@@ -6,6 +6,7 @@ import '../../services/location_service.dart';
 import '../../services/settings_service.dart';
 import '../../models/location_info.dart';
 import 'package:adhan/adhan.dart';
+import 'package:sakin_app/l10n/generated/app_localizations.dart';
 
 class PrayerTimesScreen extends StatefulWidget {
   const PrayerTimesScreen({super.key});
@@ -73,9 +74,11 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
       },
     ];
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('مواقيت الصلاة'),
+        title: Text(l10n.prayerTimes),
         centerTitle: true,
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
@@ -137,8 +140,13 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                 ElevatedButton.icon(
                   onPressed: locationService.isLoading
                       ? null
-                      : () {
-                          locationService.getCurrentLocation();
+                      : () async {
+                          final loc =
+                              await locationService.getCurrentLocation();
+                          if (loc != null) {
+                            prayerService.scheduleNotifications(
+                                settingsService.settings);
+                          }
                         },
                   icon: locationService.isLoading
                       ? const SizedBox(
@@ -178,7 +186,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                           prayerService.prayerTimes!.timeForPrayer(prayer);
                       final isNext = prayerService.nextPrayer == prayer;
 
-                      // الحصول على حالة تفعيل هذه الصلاة
+                      // حالة التفعيل
                       bool isEnabled = true;
                       switch (prayerKey) {
                         case 'fajr':
@@ -202,7 +210,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
                           color: isNext
-                              ? AppTheme.primaryColor.withOpacity(0.1)
+                              ? AppTheme.primaryColor.withValues(alpha: 0.1)
                               : Colors.white,
                           borderRadius: BorderRadius.circular(15),
                           border: Border.all(
@@ -261,9 +269,12 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                                 child: Switch(
                                   value: isEnabled,
                                   activeThumbColor: AppTheme.primaryColor,
-                                  onChanged: (value) {
-                                    settingsService.togglePrayer(
+                                  onChanged: (value) async {
+                                    await settingsService.togglePrayer(
                                         prayerKey, value);
+                                    // إعادة جدولة المنبهات فوراً بعد التغيير
+                                    prayerService.scheduleNotifications(
+                                        settingsService.settings);
                                   },
                                 ),
                               ),
