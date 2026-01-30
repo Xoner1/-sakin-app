@@ -35,10 +35,9 @@
 
 ## 📸 Screenshots | لقطات من التطبيق
 <p align="center">
-  <img src="screenshots/Screenshot_2026-01-30-17-12-18-647_com.example.sakin_app.jpg" width="200" title="Home Screen" />
-  <img src="screenshots/Screenshot_2026-01-30-17-12-26-936_com.example.sakin_app.jpg" width="200" title="Prayer Times" />
-  <img src="screenshots/Screenshot_2026-01-30-17-12-22-584_com.example.sakin_app.jpg" width="200" title="Prayer Tracking" />
-  <img src="screenshots/Screenshot_2026-01-30-17-12-30-542_com.example.sakin_app.jpg" width="200" title="Settings" />
+  <img src="screenshots/Screenshot_2026-01-30-17-12-18-647_com.example.sakin_app.jpg" width="200" />
+  <img src="screenshots/Screenshot_2026-01-30-17-12-26-936_com.example.sakin_app.jpg" width="200" />
+  <img src="screenshots/Screenshot_2026-01-30-17-12-22-584_com.example.sakin_app.jpg" width="200" />
 </p>
 
 ---
