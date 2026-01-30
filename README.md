@@ -1,45 +1,46 @@
-# Sakin App | تطبيق ساكن 🕌
+# Sakin App | تطبيق ساكن 🕌 🚀
 
-**Sakin** is a modern Flutter application designed to help users manage their daily tasks, habits, and religious duties seamlessly. The app provides accurate prayer times based on the user's location with a high-performance background service.
+**Sakin** is a modern, stable, and minimalist Flutter application designed to be your daily spiritual companion. Built with a focus on privacy and offline stability.
 
-**تطبيق ساكن** هو تطبيق عصري مبني باستخدام فلاتر، يهدف لمساعدة المستخدمين على تنظيم مهامهم اليومية وعاداتهم وواجباتهم الدينية بسلاسة. يوفر التطبيق مواقيت صلاة دقيقة بناءً على موقع المستخدم مع خدمة خلفية عالية الأداء.
-
----
-
-## ✨ Features | المميزات الحالية (Version 1.0)
-- 📍 **Automatic Location Detection**: Using `Geolocator` and `Geocoding` to get the city name and coordinates.
-- 🕒 **Precise Prayer Times**: Accurate calculations for all five prayers including Shuruq.
-- 🔊 **Adhan Notifications**: Full audio support for Adhan using `just_audio` even when the app is in the background.
-- 🌓 **Offline Support**: Stores location and settings locally using `Hive` database.
-- 📱 **Android 15 Ready**: Optimized for the latest Android APIs (API 35).
-
-- 📍 **تحديد الموقع تلقائياً**: باستخدام مكتبات تحديد الموقع لجلب اسم المدينة والإحداثيات.
-- 🕒 **مواقيت صلاة دقيقة**: حسابات دقيقة لجميع الصلوات مع وقت الشروق.
-- 🔊 **تنبيهات الأذان**: دعم كامل لتشغيل الأذان صوتياً حتى في الخلفية.
-- 🌓 **يعمل بدون إنترنت**: حفظ الموقع والإعدادات محلياً باستخدام قاعدة بيانات Hive.
-- 📱 **متوافق مع أندرويد 15**: محسن ليعمل بكفاءة على أحدث إصدارات الأندرويد.
+**تطبيق ساكن** هو تطبيق عصري، مستقر، وبسيط؛ صُمم ليكون رفيقك الإيماني اليومي. تم بناؤه مع التركيز الكامل على الخصوصية والاستقرار حتى بدون اتصال بالإنترنت.
 
 ---
 
-## 🚀 Future Updates | التحديثات القادمة
-We are working hard to enhance Sakin. Before the holy month of **Ramadan** (Insha'Allah), we plan to add:
-1. 🧭 **Qibla Direction**: Accurate compass for Qibla.
-2. 📿 **Dhikr & Duaa List**: A verified list of daily supplications.
-3. 📊 **Habit Tracker**: Improvements to the task management system.
+## ✨ What's New in v1.1 | الجديد في هذه النسخة
+- ✅ **Ultra-Stable Release**: Compiled as a high-performance Release APK.
+- 📍 **Offline-First**: Reliable location caching using Hive for persistent prayer times.
+- 🔊 **Enhanced Adhan**: Background service optimization for Android 15.
+- 🎨 **Modern UI**: Includes prayer switches and smart city naming (Geocoding).
 
-نعمل بجد لتطوير تطبيق ساكن. قبل **شهر رمضان المبارك** (إن شاء الله)، نخطط لإضافة:
-1. 🧭 **تحديد القبلة**: بوصلة دقيقة لتحديد اتجاه القبلة.
-2. 📿 **قائمة الأذكار والأدعية**: مجموعة مدققة من الأذكار اليومية.
-3. 📊 **متابع العادات**: تحسينات شاملة لنظام إدارة المهام.
+- ✅ **نسخة مستقرة**: تم بناؤها بأداء عالٍ (Release Build).
+- 📍 **العمل بدون إنترنت**: حفظ ذكي للموقع والمواقيت لضمان العمل في كل الظروف.
+- 🔊 **أذان مطور**: تحسين خدمة الخلفية لتتوافق تماماً مع أندرويد 15.
+- 🎨 **واجهة عصرية**: إضافة مفاتيح التحكم في التنبيهات وجلب اسم المدينة تلقائياً.
+
+---
+
+## 🚀 Roadmap | خارطة الطريق (قريباً قبل رمضان)
+We are evolving! Upcoming features include:
+- 🧭 **Qibla Finder**: Precision compass integration.
+- 📿 **Smart Dhikr**: Post-prayer supplications with interactive counters.
+- 📅 **Ramadan Specials**: Fasting times and daily reminders.
 
 ---
 
-## 🛠️ Installation | التشغيل
-1. Clone the repo: `git clone https://github.com/Xoner1/-sakin-app.git`
-2. Run `flutter pub get`
-3. Add your adhan file to `assets/audio/adhan.mp3`
-4. Run the app: `flutter run`
+## 🤝 Open Source & Contributions
+This project is **Open Source**. We welcome developers to contribute, fix bugs, or suggest new features.
+هذا المشروع **مفتوح المصدر**. نرحب بجميع المبرمجين للمساهمة في تطوير الكود أو تحسين الميزات.
 
 ---
-**Note:** This is the first version (V1.0). Updates are coming soon!
-**ملاحظة:** هذه هي النسخة الأولى (V1.0). التحديثات قادمة قريباً!
+
+## 📢 Feedback & Support | تواصل معنا
+Your feedback helps us grow! If you find a bug or have a suggestion, reach out:
+رأيك يهمنا لتطوير "ساكن"! إذا واجهت مشكلة أو لديك اقتراح، لا تتردد في التواصل:
+
+📧 **Email**: [fakhr.farhat@gmail.com](mailto:fakhr.farhat@gmail.com)
+💬 **WhatsApp**: [+216 94 380 416](https://wa.me/21694380416)
+📸 **Instagram**: [@fd_farhat](https://instagram.com/fd_farhat)
+
+---
+**Note:** Download the latest stable APK from the [Releases](https://github.com/Xoner1/-sakin-app/releases) section.
+**ملاحظة:** حمل أحدث نسخة مستقرة (APK) من قسم الإصدارات في المستودع.
