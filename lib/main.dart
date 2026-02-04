@@ -9,6 +9,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:sakin_app/l10n/generated/app_localizations.dart';
 
 import 'package:timezone/data/latest.dart' as tz;
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'presentation/screens/settings_screen.dart';
 import 'presentation/screens/adhan_alarm_page.dart';
@@ -18,16 +19,21 @@ import 'core/theme.dart';
 import 'services/prayer_service.dart';
 import 'services/notification_service.dart';
 import 'services/location_service.dart';
-import 'services/settings_service.dart';
+import 'core/services/settings_service.dart';
+import 'core/services/habit_service.dart';
 import 'services/battery_optimization_service.dart';
-import 'services/alarm_service.dart'; // New Service
+import 'services/alarm_service.dart';
 
 import 'data/hive_database.dart';
+import 'data/repositories/misbaha_repository.dart';
+
 import 'presentation/widgets/nav_bar.dart';
 import 'presentation/screens/home_screen.dart';
 import 'presentation/screens/habits_screen.dart';
 import 'presentation/screens/prayer_times_screen.dart';
 import 'presentation/screens/adhkar_screen.dart';
+
+import 'business_logic/cubits/misbaha/misbaha_cubit.dart';
 
 import 'package:sakin_app/models/location_info.dart';
 import 'package:sakin_app/providers/dependencies/adhan_dependency_provider.dart';
@@ -38,10 +44,23 @@ import 'package:sakin_app/providers/adhan_notification_provider.dart';
 // Global navigator key for navigation without context
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+// Listen to theme changes globally
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+final ValueNotifier<Locale> localeNotifier = ValueNotifier(const Locale('ar'));
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 0. Initialize date formatting locale
+  // 0. Initialize Settings First
+  await SettingsService.init();
+  themeNotifier.value =
+      SettingsService.isDarkMode ? ThemeMode.dark : ThemeMode.light;
+  localeNotifier.value = Locale(SettingsService.language);
+
+  // Initialize Habit Service
+  await HabitService.init();
+
+  // 1. Initialize date formatting locale
   await initializeDateFormatting('ar', null);
   tz.initializeTimeZones();
 
@@ -49,8 +68,11 @@ void main() async {
   final hiveDb = HiveDatabase();
   await hiveDb.init();
 
+  // Initialize Misbaha Repository
+  final misbahaRepository = MisbahaRepository();
+  await misbahaRepository.init();
+
   // 2. Request necessary permissions (Only once)
-  // Use Hive (Settings Box) to check if permissions were already requested
   var settingsBox = await Hive.openBox('settings');
   bool permissionsRequested =
       settingsBox.get('permissions_requested', defaultValue: false);
@@ -58,14 +80,9 @@ void main() async {
   if (!permissionsRequested) {
     debugPrint('Requesting permissions for the first time...');
 
-    // Use the robust PermissionService
     final permissionService = PermissionService();
     await permissionService.requestNotificationPermissions();
-
-    // Also request location specifically for the first time
     await Permission.location.request();
-
-    // Mark as requested preventing future prompts
     await settingsBox.put('permissions_requested', true);
   } else {
     debugPrint('Permissions already requested previously. Skipping.');
@@ -74,8 +91,7 @@ void main() async {
   // 3. Initialize Services
   await NotificationService.init();
   if (Platform.isAndroid) {
-    await AndroidAlarmManager
-        .initialize(); // Initialize Alarm Manager (Android only)
+    await AndroidAlarmManager.initialize();
   }
 
   // 5. Initialize Location Service
@@ -89,14 +105,24 @@ void main() async {
     );
   };
 
-  runApp(SakinApp(hiveDb: hiveDb, locationService: locationService));
+  runApp(SakinApp(
+    hiveDb: hiveDb,
+    locationService: locationService,
+    misbahaRepository: misbahaRepository,
+  ));
 }
 
 class SakinApp extends StatelessWidget {
   final HiveDatabase hiveDb;
   final LocationService locationService;
-  const SakinApp(
-      {super.key, required this.hiveDb, required this.locationService});
+  final MisbahaRepository misbahaRepository;
+
+  const SakinApp({
+    super.key,
+    required this.hiveDb,
+    required this.locationService,
+    required this.misbahaRepository,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -104,108 +130,116 @@ class SakinApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider.value(value: hiveDb),
         ChangeNotifierProvider.value(value: locationService),
-        ChangeNotifierProvider(
-            create: (_) => SettingsService()..loadSettings()),
         ChangeNotifierProvider(create: (_) => AdhanDependencyProvider()),
         ChangeNotifierProvider(create: (_) => AdhanPlayBackProvider()),
+        RepositoryProvider.value(value: misbahaRepository),
+        BlocProvider(create: (_) => MisbahaCubit(misbahaRepository)),
       ],
-      child: Consumer<SettingsService>(
-        builder: (context, settings, child) {
-          return MaterialApp(
-            navigatorKey: navigatorKey,
-            debugShowCheckedModeBanner: false,
-            title: 'Sakin',
-            theme: AppTheme.lightTheme,
-            locale: settings.locale,
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: const [
-              Locale('ar'),
-              Locale('en'),
-              Locale('fr'),
-            ],
-            builder: (context, child) {
-              return MultiProvider(
-                providers: [
-                  ChangeNotifierProxyProvider2<AdhanDependencyProvider,
-                      LocationService, AdhanProvider>(
-                    create: (context) => AdhanProvider(
-                      Provider.of<AdhanDependencyProvider>(context,
-                          listen: false),
-                      Provider.of<LocationService>(context, listen: false)
-                              .currentLocation ??
-                          LocationInfo(
-                              latitude: 0,
-                              longitude: 0,
-                              address: '',
-                              mode: LocationMode.manual), // Default
-                      null,
-                    ),
-                    update: (context, dep, loc, prev) {
-                      return AdhanProvider(
-                        dep,
-                        loc.currentLocation ??
-                            LocationInfo(
-                                latitude: 0,
-                                longitude: 0,
-                                address: '',
-                                mode: LocationMode.manual),
-                        AppLocalizations.of(context),
-                      );
-                    },
-                  ),
-                  ChangeNotifierProxyProvider2<AdhanDependencyProvider,
-                      LocationService, AdhanNotificationProvider>(
-                    create: (context) => AdhanNotificationProvider(
-                      Provider.of<AdhanDependencyProvider>(context,
-                          listen: false),
-                      Provider.of<LocationService>(context, listen: false)
-                              .currentLocation ??
-                          LocationInfo(
-                              latitude: 0,
-                              longitude: 0,
-                              address: '',
-                              mode: LocationMode.manual),
-                      null,
-                    ),
-                    update: (context, dep, loc, prev) {
-                      return AdhanNotificationProvider(
-                        dep,
-                        loc.currentLocation ??
-                            LocationInfo(
-                                latitude: 0,
-                                longitude: 0,
-                                address: '',
-                                mode: LocationMode.manual),
-                        AppLocalizations.of(context),
-                      );
-                    },
-                  ),
-// Keep PrayerService for now if needed, or rely on refactor
-                  ChangeNotifierProxyProvider<LocationService, PrayerService>(
-                    create: (_) => PrayerService(),
-                    update: (_, location, prayerService) {
-                      if (prayerService != null &&
-                          location.currentLocation != null) {
-                        prayerService.updateLocation(
-                          location.currentLocation!.latitude,
-                          location.currentLocation!.longitude,
-                        );
-                      }
-                      return prayerService ?? PrayerService();
-                    },
-                  ),
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: themeNotifier,
+        builder: (context, mode, _) {
+          return ValueListenableBuilder<Locale>(
+            valueListenable: localeNotifier,
+            builder: (_, locale, __) {
+              return MaterialApp(
+                navigatorKey: navigatorKey,
+                debugShowCheckedModeBanner: false,
+                title: 'Sakin',
+                theme: AppTheme.lightTheme,
+                darkTheme: AppTheme.darkTheme,
+                themeMode: mode,
+                locale: locale,
+                supportedLocales: const [
+                  Locale('ar'),
+                  Locale('en'),
+                  Locale('fr'),
                 ],
-                child: child!,
+                localizationsDelegates: const [
+                  AppLocalizations.delegate,
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                ],
+                builder: (context, child) {
+                  return MultiProvider(
+                    providers: [
+                      ChangeNotifierProxyProvider2<AdhanDependencyProvider,
+                          LocationService, AdhanProvider>(
+                        create: (context) => AdhanProvider(
+                          Provider.of<AdhanDependencyProvider>(context,
+                              listen: false),
+                          Provider.of<LocationService>(context, listen: false)
+                                  .currentLocation ??
+                              LocationInfo(
+                                  latitude: 0,
+                                  longitude: 0,
+                                  address: '',
+                                  mode: LocationMode.manual),
+                          null,
+                        ),
+                        update: (context, dep, loc, prev) {
+                          return AdhanProvider(
+                            dep,
+                            loc.currentLocation ??
+                                LocationInfo(
+                                    latitude: 0,
+                                    longitude: 0,
+                                    address: '',
+                                    mode: LocationMode.manual),
+                            AppLocalizations.of(context),
+                          );
+                        },
+                      ),
+                      ChangeNotifierProxyProvider2<AdhanDependencyProvider,
+                          LocationService, AdhanNotificationProvider>(
+                        create: (context) => AdhanNotificationProvider(
+                          Provider.of<AdhanDependencyProvider>(context,
+                              listen: false),
+                          Provider.of<LocationService>(context, listen: false)
+                                  .currentLocation ??
+                              LocationInfo(
+                                  latitude: 0,
+                                  longitude: 0,
+                                  address: '',
+                                  mode: LocationMode.manual),
+                          null,
+                        ),
+                        update: (context, dep, loc, prev) {
+                          return AdhanNotificationProvider(
+                            dep,
+                            loc.currentLocation ??
+                                LocationInfo(
+                                    latitude: 0,
+                                    longitude: 0,
+                                    address: '',
+                                    mode: LocationMode.manual),
+                            AppLocalizations.of(context),
+                          );
+                        },
+                      ),
+                      ChangeNotifierProxyProvider<LocationService,
+                          PrayerService>(
+                        create: (_) => PrayerService(),
+                        update: (_, location, prayerService) {
+                          if (prayerService != null &&
+                              location.currentLocation != null) {
+                            prayerService.updateLocation(
+                              location.currentLocation!.latitude,
+                              location.currentLocation!.longitude,
+                            );
+                          }
+                          return prayerService ?? PrayerService();
+                        },
+                      ),
+                    ],
+                    child: child!,
+                  );
+                },
+                home: const MainLayout(),
+                routes: {
+                  '/adhkar': (context) => const AdhkarScreen(),
+                },
               );
-            },
-            home: const MainLayout(),
-            routes: {
-              '/adhkar': (context) => const AdhkarScreen(),
             },
           );
         },
@@ -231,13 +265,10 @@ class _MainLayoutState extends State<MainLayout> {
       BatteryOptimizationService.checkAndPrompt(context);
       _checkNotificationLaunch();
 
-      // NEW: Alarm-Style Scheduling
       await PrayerAlarmScheduler.scheduleSevenDays();
       await PrayerAlarmScheduler.checkAndNotifyTTL();
     });
   }
-
-  /* Removed legacy background service calls */
 
   Future<void> _checkNotificationLaunch() async {
     final bool launchedFromAdhan =
@@ -254,7 +285,7 @@ class _MainLayoutState extends State<MainLayout> {
     const HomeScreen(),
     const HabitsScreen(),
     const PrayerTimesScreen(),
-    const SettingsScreen(), // Settings Page
+    const SettingsScreen(),
   ];
 
   @override
