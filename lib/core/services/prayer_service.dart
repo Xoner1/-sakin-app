@@ -42,9 +42,9 @@ class PrayerService {
     return calculatePrayerTimes(DateTime.now(), lat, long);
   }
 
-  /// Generates prayer times for Today + Next 6 days (Total 7 days).
+  /// Generates prayer times for Today + Next 29 days (Total 30 days).
   /// Useful for scheduling notifications.
-  static Map<DateTime, Map<String, DateTime>>? getNext7DaysSchedule() {
+  static Map<DateTime, Map<String, DateTime>>? getNext30DaysSchedule() {
     final lat = SettingsService.latitude;
     final long = SettingsService.longitude;
 
@@ -55,7 +55,7 @@ class PrayerService {
     final Map<DateTime, Map<String, DateTime>> schedule = {};
     final now = DateTime.now();
 
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 30; i++) {
       final date = now.add(Duration(days: i));
       // Normalize date to just Y-M-D for the key if needed, or keep full DateTime
       // strict Y-M-D key might be safer for map lookups

@@ -1,6 +1,8 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:audio_session/audio_session.dart';
+
 /// Service to play Adhan audio
 class AdhanPlayer {
   static final AdhanPlayer _instance = AdhanPlayer._internal();
@@ -18,25 +20,43 @@ class AdhanPlayer {
         await stopAdhan();
       }
 
-      // Load Adhan file from assets
-      await _player.setAsset('assets/audio/adhan.mp3');
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playback,
+        avAudioSessionMode: AVAudioSessionMode.defaultMode,
+        avAudioSessionRouteSharingPolicy:
+            AVAudioSessionRouteSharingPolicy.defaultPolicy,
+        avAudioSessionSetActiveOptions:
+            AVAudioSessionSetActiveOptions.notifyOthersOnDeactivation,
+        androidAudioAttributes: AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.sonification,
+          flags: AndroidAudioFlags.none,
+          usage: AndroidAudioUsage.alarm,
+        ),
+        androidAudioFocusGainType:
+            AndroidAudioFocusGainType.gainTransientExclusive, // Exclusive focus
+        androidWillPauseWhenDucked: true,
+      ));
 
-      // Set volume to maximum
-      await _player.setVolume(1.0);
+      // Ensure audio session is active to pause other apps
+      if (await session.setActive(true)) {
+        // Load Adhan file from assets
+        await _player.setAsset('assets/audio/adhan.mp3');
 
-      // Start playback
-      _isPlaying = true;
-      await _player.play();
+        // Set volume to maximum
+        await _player.setVolume(1.0);
 
-      // Listen for playback completion
-      _player.playerStateStream.listen((state) {
-        if (state.processingState == ProcessingState.completed) {
-          _isPlaying = false;
-        }
-      });
+        // Start playback
+        _isPlaying = true;
+        await _player.play();
+      }
     } catch (e) {
       debugPrint('Error playing Adhan: $e');
+    } finally {
       _isPlaying = false;
+      // Release audio focus so other apps can resume
+      final session = await AudioSession.instance;
+      await session.setActive(false);
     }
   }
 

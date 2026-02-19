@@ -83,7 +83,7 @@ class LocationService with ChangeNotifier {
       await _saveLocationToCache(_currentLocation!);
 
       // Trigger prayer scheduling for the new location
-      await PrayerAlarmScheduler.scheduleSevenDays();
+      await PrayerAlarmScheduler.schedulePrayerAlarms();
 
       _isLoading = false;
       notifyListeners();
@@ -114,7 +114,7 @@ class LocationService with ChangeNotifier {
         );
 
         await _saveLocationToCache(_currentLocation!);
-        await PrayerAlarmScheduler.scheduleSevenDays();
+        await PrayerAlarmScheduler.schedulePrayerAlarms();
 
         _isLoading = false;
         notifyListeners();

@@ -12,7 +12,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'presentation/screens/settings_screen.dart';
-import 'presentation/screens/adhan_alarm_page.dart';
+// import 'presentation/screens/adhan_alarm_page.dart';
 import 'presentation/screens/splash_screen.dart'; // Import SplashScreen
 import 'services/permission_service.dart';
 
@@ -24,6 +24,7 @@ import 'core/services/settings_service.dart';
 import 'core/services/habit_service.dart';
 import 'services/battery_optimization_service.dart';
 import 'services/alarm_service.dart';
+import 'services/ramadan_messages_service.dart';
 
 import 'data/hive_database.dart';
 import 'data/repositories/misbaha_repository.dart';
@@ -157,7 +158,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
   }
 }
 
-class SakinApp extends StatelessWidget {
+class SakinApp extends StatefulWidget {
   final HiveDatabase hiveDb;
   final LocationService locationService;
   final MisbahaRepository misbahaRepository;
@@ -170,15 +171,33 @@ class SakinApp extends StatelessWidget {
   });
 
   @override
+  State<SakinApp> createState() => _SakinAppState();
+}
+
+class _SakinAppState extends State<SakinApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Check if app was launched from Adhan notification and stop it
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final launchedFromAdhan = await NotificationService.didLaunchFromAdhan();
+      if (launchedFromAdhan) {
+        // Stop adhan without showing any UI
+        await NotificationService.stopAdhan();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: hiveDb),
-        ChangeNotifierProvider.value(value: locationService),
+        ChangeNotifierProvider.value(value: widget.hiveDb),
+        ChangeNotifierProvider.value(value: widget.locationService),
         ChangeNotifierProvider(create: (_) => AdhanDependencyProvider()),
         ChangeNotifierProvider(create: (_) => AdhanPlayBackProvider()),
-        RepositoryProvider.value(value: misbahaRepository),
-        BlocProvider(create: (_) => MisbahaCubit(misbahaRepository)),
+        RepositoryProvider.value(value: widget.misbahaRepository),
+        BlocProvider(create: (_) => MisbahaCubit(widget.misbahaRepository)),
       ],
       child: ValueListenableBuilder<ThemeMode>(
         valueListenable: themeNotifier,
@@ -307,13 +326,15 @@ class _MainLayoutState extends State<MainLayout> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       BatteryOptimizationService.checkAndPrompt(context);
-      _checkNotificationLaunch();
+      // _checkNotificationLaunch();
 
-      await PrayerAlarmScheduler.scheduleSevenDays();
+      await PrayerAlarmScheduler.schedulePrayerAlarms();
       await PrayerAlarmScheduler.checkAndNotifyTTL();
+      await RamadanMessagesService.scheduleDailyMessage();
     });
   }
 
+  /*
   Future<void> _checkNotificationLaunch() async {
     final bool launchedFromAdhan =
         await NotificationService.didLaunchFromAdhan();
@@ -324,6 +345,7 @@ class _MainLayoutState extends State<MainLayout> {
       );
     }
   }
+  */
 
   final List<Widget> _screens = [
     const HomeScreen(),

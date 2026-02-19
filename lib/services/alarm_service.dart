@@ -16,8 +16,8 @@ class PrayerAlarmScheduler {
   static const String _lastScheduledKey = 'last_scheduled_date';
   static const String _offsetsKey = 'prayer_offsets'; // Added constant
 
-  /// Schedules prayer alarms/notifications for the next 7 days.
-  static Future<void> scheduleSevenDays() async {
+  /// Schedules prayer alarms/notifications for the next 30 days.
+  static Future<void> schedulePrayerAlarms() async {
     final box = await Hive.openBox(_settingsBoxName);
 
     // Load Offsets
@@ -48,19 +48,12 @@ class PrayerAlarmScheduler {
 
     // 1. Cancel existing alarms to avoid duplicates
     if (Platform.isAndroid) {
-      // Note: AndroidAlarmManager.cancel(0) only cancels the alarm with ID 0.
-      // For a full clear, one would need to track all scheduled IDs and cancel them individually.
-      // However, since we use a consistent ID generation (day * 10 + prayerIndex),
-      // new alarms will overwrite old ones if they have the same ID and time.
-      // If the goal is to prevent *any* old alarms from firing if they were scheduled for a different time,
-      // a more robust cancellation strategy is needed (e.g., cancelling a range of IDs).
-      // For now, we'll keep the requested `cancel(0)` as a placeholder or for a specific use case.
       await AndroidAlarmManager.cancel(0);
     }
 
-    debugPrint('⏳ Scheduling prayers for 7 days starting from today...');
+    debugPrint('⏳ Scheduling prayers for 30 days starting from today...');
 
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 30; i++) {
       final date = DateTime.now().add(Duration(days: i));
       final dateComponents = adhan.DateComponents.from(date);
       final prayerTimes =
@@ -70,7 +63,7 @@ class PrayerAlarmScheduler {
     }
 
     await box.put(_lastScheduledKey, DateTime.now().toIso8601String());
-    debugPrint('✅ Successfully scheduled 35 potential prayer alarms.');
+    debugPrint('✅ Successfully scheduled 150 potential prayer alarms.');
   }
 
   static Future<void> _scheduleDayPrayers(
@@ -176,10 +169,10 @@ class PrayerAlarmScheduler {
       final lastScheduled = DateTime.parse(lastScheduledStr);
       final diff = DateTime.now().difference(lastScheduled).inDays;
 
-      if (diff >= 7) {
+      if (diff >= 25) {
         await NotificationService.showNotification(
-          '⚠️ تحديث مطلوب',
-          'يرجى فتح التطبيق لتحديث مواقيت الصلاة للأسبوع القادم.',
+          'تحديث مواقيت الصلاة مطلوب',
+          'يرجى فتح التطبيق لتحديث المواقيت لضمان دقتها للشهر القادم.',
         );
       }
     }

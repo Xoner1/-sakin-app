@@ -216,6 +216,9 @@ class _SettingsScreenState extends State<SettingsScreen>
   Widget _footer() => Column(children: [
         const Text("Sakin v1.0.0", style: TextStyle(color: Colors.grey)),
         const SizedBox(height: 10),
+        const Text("لا تنسونا من صالح دعائكم ❤️",
+            style: TextStyle(color: Colors.grey, fontSize: 14)),
+        const SizedBox(height: 20),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           InkWell(
               onTap: () async => await launchUrl(

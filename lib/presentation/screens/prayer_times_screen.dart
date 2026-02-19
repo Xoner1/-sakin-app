@@ -6,7 +6,6 @@ import '../../core/theme.dart';
 import '../../core/services/settings_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/prayer_service.dart';
-import '../../services/notification_service.dart';
 import '../../core/utils/number_converter.dart';
 import 'package:sakin_app/l10n/generated/app_localizations.dart';
 
@@ -111,12 +110,6 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
 
       // 3. Update Times
       _loadPrayerTimes();
-
-      // 4. Schedule Notifications
-      final schedule = PrayerService.getNext7DaysSchedule();
-      if (schedule != null) {
-        await NotificationService.scheduleForWeek(schedule);
-      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

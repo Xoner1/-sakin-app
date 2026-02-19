@@ -12,6 +12,8 @@ import 'tasbih_screen.dart';
 import 'package:sakin_app/l10n/generated/app_localizations.dart';
 import '../../core/services/settings_service.dart';
 import '../../services/location_service.dart';
+import '../../services/ramadan_messages_service.dart';
+import '../widgets/ramadan_welcome_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +32,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _checkLocation() {
+    // Check for Ramadan Welcome Dialog
+    RamadanMessagesService.shouldShowWelcomeDialog().then((shouldShow) {
+      if (shouldShow && mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => const RamadanWelcomeDialog(),
+        );
+        RamadanMessagesService.markWelcomeDialogShown();
+      }
+    });
+
     // If location is not set, fetch it in background without await
     if (SettingsService.location == null) {
       debugPrint("HomeScreen: No location found. Fetching in background...");

@@ -110,7 +110,8 @@ class NotificationService {
     debugPrint(
         '📱 Notification tapped: ${response.actionId} - ${response.payload}');
 
-    if (response.actionId == 'stop_adhan') {
+    if (response.actionId == 'stop_adhan' || response.payload == 'adhan') {
+      // Stop adhan directly without opening any UI
       stopAdhan();
     } else if (response.actionId == 'read_adhkar' ||
         response.payload == 'adhkar') {
@@ -128,7 +129,7 @@ class NotificationService {
       priority: Priority.high,
       // UPDATED: Using custom icons
       icon: 'notification_icon',
-      largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+      largeIcon: DrawableResourceAndroidBitmap('notification_large_icon'),
       color: Color(0xFF673AB7), // Colors.deepPurple
     );
     const NotificationDetails platformChannelSpecifics =
@@ -158,7 +159,7 @@ class NotificationService {
       styleInformation: BigTextStyleInformation(''),
       // UPDATED: Icons
       icon: 'notification_icon',
-      largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+      largeIcon: DrawableResourceAndroidBitmap('notification_large_icon'),
       color: Color(0xFF673AB7),
     );
 
@@ -327,12 +328,12 @@ Future<void> adhanAlarmCallback(int id, Map<String, dynamic> params) async {
     'Adhan Alarm Final',
     channelDescription: 'Full screen adhan notification',
     importance: Importance.max,
-    priority: Priority.high,
+    priority: Priority.max,
     sound: RawResourceAndroidNotificationSound('adhan'),
     playSound: true,
     icon: 'notification_icon',
-    largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
-    fullScreenIntent: true, // Critical for background
+    largeIcon: DrawableResourceAndroidBitmap('notification_large_icon'),
+    fullScreenIntent: true, // Show full screen to ensure visibility
     category: AndroidNotificationCategory.alarm,
     visibility: NotificationVisibility.public,
     audioAttributesUsage: AudioAttributesUsage.alarm,
@@ -346,7 +347,7 @@ Future<void> adhanAlarmCallback(int id, Map<String, dynamic> params) async {
         'stop_adhan',
         'إيقاف الأذان',
         icon: DrawableResourceAndroidBitmap('notification_icon'),
-        showsUserInterface: true,
+        showsUserInterface: false, // Don't open app on stop
         cancelNotification: true,
       ),
     ],

@@ -45,6 +45,7 @@ dependencies:
   url_launcher: ^6.2.5
   shared_preferences: ^2.5.4
   flutter_heatmap_calendar: ^1.0.5
+  audio_session: ^0.1.25
 
 
 

@@ -41,7 +41,7 @@ class _PrayerAdjustmentDialogState extends State<PrayerAdjustmentDialog> {
     await box.put('prayer_offsets', _offsets.toJson());
 
     // Reschedule all alarms
-    await PrayerAlarmScheduler.scheduleSevenDays();
+    await PrayerAlarmScheduler.schedulePrayerAlarms();
 
     if (mounted) {
       // Refresh UI services
