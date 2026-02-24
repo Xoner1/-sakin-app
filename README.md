@@ -76,15 +76,15 @@ We believe that technology should serve your faith, not distract you from it.
 ## 🔮 Future Roadmap | خططنا المستقبلية
 Sakin is an active, breathing project. We have massive plans for the future, and we are just getting started! Here is a sneak peek into what's coming:
 
-- 🧠 **AI-Powered Spiritual Assistant**: A smart, privacy-first companion that helps answer religious questions based on trusted sources, without leaving your device.
 - 📖 **Complete Quran Integration**: High-quality Othmani script pages with advanced search, bookmarking, and offline audio recitations.
+- 📜 **Verified Hadith Collection**: A comprehensive, authenticated collection of Prophetic Hadith with search capabilities and clear referencing.
 - 🌍 **Community Features**: Localized mosque specific prayer times mapping, community challenges for habits, and more.
 - ⌚ **Wearables Support**: Bringing Sakin to WearOS and Apple Watch for seamless tracking.
 
 تطبيق ساكن هو مشروع حي ينبض بالتطور الدائم. لدينا خطط ضخمة للمستقبل، وما هذه إلا البداية! إليك لمحة عما نخطط لإضافته قريباً:
 
-- 🧠 **مساعد ديني بالذكاء الاصطناعي**: رفيق ذكي يحترم خصوصيتك، يساعدك في الإجابة عن التساؤلات الدينية بالاعتماد على مصادر موثوقة دون تخزين بيانات تصفحك.
 - 📖 **إدماج شامل للقرآن الكريم**: صفحات بجودة عالية بالرسم العثماني، مع إمكانيات بحث متقدمة، حفظ العلامات، وتلاوات صوتية تعمل بدون إنترنت.
+- 📜 **موسوعة الحديث الشريف**: مكتبة شاملة للأحاديث النبوية الموثقة والمدققة، مع إمكانية البحث المتقدم.
 - 🌍 **ميزات مجتمعية**: ربط التطبيق بالمساجد المحلية لمعرفة أوقاتها الدقيقة، إلى جانب تحديات مجتمعية لتعزيز العادات الدينية.
 - ⌚ **دعم الساعات الذكية**: إطلاق نسخ مصغرة من ساكن لـ WearOS و Apple Watch.
 
