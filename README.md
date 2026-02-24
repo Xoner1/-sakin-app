@@ -184,7 +184,7 @@ Whether you are a developer, designer, tester, or translator, your contribution 
 ### Contribution Guidelines | إرشادات للمساهمة:
 - **Code Style (البرمجة)**: Please use English for all code comments and commit messages. (الرجاء استخدام الإنجليزية في تعليقات الكود).
 - **Architecture (هيكل التطبيق)**: Stick to the existing folder structure and Clean Architecture principles. (التزم بالهيكل الحالي ومبادئ Clean Architecture).
-- **Discuss First (ناقش أولاً)**: For major features (like the upcoming AI integration), please open an issue or reach out to us first to discuss the architecture. (لو ستقوم بإضافة ميزة ضخمة كالذكاء الاصطناعي، يرجى التواصل معنا أولاً لتنسيق العمل).
+- **Discuss First (ناقش أولاً)**: For major features (like the upcoming Quran integration), please open an issue or reach out to us first to discuss the architecture. (لو ستقوم بإضافة ميزة ضخمة كإدماج القرآن الكريم، يرجى التواصل معنا أولاً لتنسيق العمل).
 
 ---
 
