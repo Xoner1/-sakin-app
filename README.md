@@ -4,13 +4,15 @@
 ![Android](https://img.shields.io/badge/Android-12%2B-green?style=flat&logo=android)
 ![License](https://img.shields.io/badge/License-GPLv3-blue.svg)
 
-### 📲 Available Soon!
+### 📲 Available Soon! | قريباً جداً!
 <p align="left">
   <a href="#coming-soon"><img src="https://img.shields.io/badge/Google_Play-Coming_in_a_few_days_⏳-041E42?style=for-the-badge&logo=google-play&logoColor=white" alt="Google Play"></a>
   <a href="#coming-soon"><img src="https://img.shields.io/badge/App_Store-Coming_Soon_🚀-000000?style=for-the-badge&logo=apple&logoColor=white" alt="App Store"></a>
 </p>
 
 > **Status: 🟢 ALIVE & ACTIVE** — *We are currently in the final stages of our Google Play Store review process. Daily patches and improvements are being made to prepare for the official launch!*
+>
+> **الحالة: 🟢 نشط ومستمر** — *نحن حالياً في المراحل الأخيرة من مراجعة متجر جوجل بلاي. نقوم يومياً بتحديثات وإصلاحات للتحضير للإطلاق الرسمي!*
 
 **Sakin** is a modern, privacy-focused Islamic lifestyle application built with Flutter. It is designed to be a sincere spiritual companion, offering accurate prayer times, ad-free experience, and complete offline functionality.
 
@@ -24,6 +26,11 @@ We believe spiritual apps should be distractions-free. Sakin is built on three c
 1.  **Privacy First**: No data collection, no tracking. Everything stays on your device (Hive DB).
 2.  **Battery Efficient**: Uses **Exact Alarms** instead of battery-draining background services. The app wakes up only when needed.
 3.  **Modern Design**: A beautiful, "Sage Green" aesthetic with Dark Mode support and glassmorphism elements.
+
+نؤمن أن التطبيقات الإسلامية يجب أن تكون خالية من المشتتات. تم بناء تطبيق ساكن على ثلاث ركائز أساسية:
+1. **الخصوصية أولاً**: لا نجمع بياناتك ولا نتتبعك. كل شيء يُحفظ محلياً على جهازك.
+2. **صديق للبطارية**: نستخدم نظام **المنبه الدقيق** عوضاً عن خدمات الخلفية التي تستنزف البطارية، فالتطبيق لا يعمل إلا عند الحاجة فقط.
+3. **تصميم عصري**: واجهة جذابة باللون "الأخضر الهادئ" تدعم الوضع الليلي وتأثيرات الزجاج (Glassmorphism).
 
 ---
 
@@ -57,6 +64,13 @@ We believe that technology should serve your faith, not distract you from it.
 - **Completely devoid of intrusive ads or data tracking.**
 - **Reliable and offline-first**, so your spirituality isn't tied to a server status.
 
+نؤمن أن التكنولوجيا وُجدت لتخدم دينك، لا لتلهيك عنه.
+
+**هدفنا:** توفير تطبيق آمن، قوي، ومستمر التطور للأمة الإسلامية، يعاون المسلم على الحفاظ على صلواته وعاداته الروحية. نحن ملتزمون ببقاء تطبيق ساكن:
+- **مجاني 100% ومفتوح المصدر إلى الأبد.**
+- **خالٍ تماماً من الإعلانات المزعجة أو تتبع البيانات الشخصية.**
+- **موثوق ويعمل بدون إنترنت**، كي لا تعتمد عبادتك على حالة خوادم خارجية.
+
 ---
 
 ## 🔮 Future Roadmap | خططنا المستقبلية
@@ -66,6 +80,13 @@ Sakin is an active, breathing project. We have massive plans for the future, and
 - 📖 **Complete Quran Integration**: High-quality Othmani script pages with advanced search, bookmarking, and offline audio recitations.
 - 🌍 **Community Features**: Localized mosque specific prayer times mapping, community challenges for habits, and more.
 - ⌚ **Wearables Support**: Bringing Sakin to WearOS and Apple Watch for seamless tracking.
+
+تطبيق ساكن هو مشروع حي ينبض بالتطور الدائم. لدينا خطط ضخمة للمستقبل، وما هذه إلا البداية! إليك لمحة عما نخطط لإضافته قريباً:
+
+- 🧠 **مساعد ديني بالذكاء الاصطناعي**: رفيق ذكي يحترم خصوصيتك، يساعدك في الإجابة عن التساؤلات الدينية بالاعتماد على مصادر موثوقة دون تخزين بيانات تصفحك.
+- 📖 **إدماج شامل للقرآن الكريم**: صفحات بجودة عالية بالرسم العثماني، مع إمكانيات بحث متقدمة، حفظ العلامات، وتلاوات صوتية تعمل بدون إنترنت.
+- 🌍 **ميزات مجتمعية**: ربط التطبيق بالمساجد المحلية لمعرفة أوقاتها الدقيقة، إلى جانب تحديات مجتمعية لتعزيز العادات الدينية.
+- ⌚ **دعم الساعات الذكية**: إطلاق نسخ مصغرة من ساكن لـ WearOS و Apple Watch.
 
 ---
 
@@ -153,10 +174,17 @@ Whether you are a developer, designer, tester, or translator, your contribution 
 - **Translators**: Help us bring Sakin to millions across the globe in their native languages.
 - **Designers**: Propose UI/UX improvements to keep the app feeling premium and serene.
 
-### Contribution Guidelines:
-- **Code Style**: Please use English for all code comments and commit messages.
-- **Architecture**: Stick to the existing folder structure and Clean Architecture principles.
-- **Discuss First**: For major features (like the upcoming AI integration), please open an issue or reach out to us first to discuss the architecture.
+ساكن هو مشروع مفتوح المصدر صُنع *من* المسلمين *لأجل* المسلمين. إذا كنت تشاركنا الرؤية لوجود تطبيق إسلامي نقي وخالٍ من الإعلانات التجارية، **نحن بحاجة إليك!**
+
+سواء كنت مبرمجاً، مصمماً، مجرباً، أو مترجماً، مساهمتك هنا تُعتبر "صدقة جارية" لك بإذن الله.
+- **المبرمجون**: يمكنكم الاطلاع على المشاكل المفتوحة (Issues)، إصلاح الأخطاء، أو العمل على ميزات جديدة من خططنا المستقبلية.
+- **المترجمون**: ساعدونا في إيصال هذا التطبيق للملايين حول العالم بلغاتهم الأم.
+- **المصممون**: اقترحوا تحسينات على واجهة المستخدم (UI/UX) لضمان بقاء التطبيق مريحاً وهادئاً بصرياً.
+
+### Contribution Guidelines | إرشادات للمساهمة:
+- **Code Style (البرمجة)**: Please use English for all code comments and commit messages. (الرجاء استخدام الإنجليزية في تعليقات الكود).
+- **Architecture (هيكل التطبيق)**: Stick to the existing folder structure and Clean Architecture principles. (التزم بالهيكل الحالي ومبادئ Clean Architecture).
+- **Discuss First (ناقش أولاً)**: For major features (like the upcoming AI integration), please open an issue or reach out to us first to discuss the architecture. (لو ستقوم بإضافة ميزة ضخمة كالذكاء الاصطناعي، يرجى التواصل معنا أولاً لتنسيق العمل).
 
 ---
 
