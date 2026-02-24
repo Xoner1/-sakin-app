@@ -7,6 +7,7 @@ import '../../core/services/settings_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/prayer_service.dart';
 import '../../core/utils/number_converter.dart';
+import '../../services/alarm_service.dart';
 import 'package:sakin_app/l10n/generated/app_localizations.dart';
 
 class PrayerTimesScreen extends StatefulWidget {
@@ -34,6 +35,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
 
   // Fallback times if no location is set yet (matching previous dummy data)
   final Map<String, TimeOfDay> _fallbackTimes = {
+    'Imsak': const TimeOfDay(hour: 5, minute: 15),
     'Fajr': const TimeOfDay(hour: 5, minute: 30),
     'Dhuhr': const TimeOfDay(hour: 12, minute: 35),
     'Asr': const TimeOfDay(hour: 15, minute: 45),
@@ -53,63 +55,43 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     );
 
     try {
-      // 0. Capture old location
-      final double? oldLat = SettingsService.latitude;
-      final double? oldLong = SettingsService.longitude;
-
       // 1. Fetch Location
       await LocationService.getUserLocation();
 
       // 2. Check for Offset Conflict
       if (SettingsService.hasOffsets && mounted) {
-        bool shouldAsk = true;
-
-        // If we had a previous location, check distance
-        if (oldLat != null && oldLong != null) {
-          final newLat = SettingsService.latitude!;
-          final newLong = SettingsService.longitude!;
-          final double distanceInMeters =
-              LocationService.distanceBetween(oldLat, oldLong, newLat, newLong);
-
-          // Only ask if distance > 10km (10,000 meters)
-          if (distanceInMeters < 10000) {
-            shouldAsk = false;
-          }
-        }
-
-        if (shouldAsk) {
-          // Show Dialog
-          final l10n = AppLocalizations.of(context)!;
-          final shouldReset = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: Text(l10n.changeLocation, textAlign: TextAlign.right),
-              content: Text(
-                l10n.locationChangeDetected,
-                textAlign: TextAlign.right,
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false), // Keep
-                  child: Text(l10n.keep),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, true), // Reset
-                  child: Text(l10n.reset,
-                      style: const TextStyle(color: Colors.red)),
-                ),
-              ],
+        // Show Dialog
+        final l10n = AppLocalizations.of(context)!;
+        final shouldReset = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(l10n.changeLocation, textAlign: TextAlign.right),
+            content: Text(
+              l10n.locationChangeDetected,
+              textAlign: TextAlign.right,
             ),
-          );
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false), // Keep
+                child: Text(l10n.keep),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true), // Reset
+                child:
+                    Text(l10n.reset, style: const TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        );
 
-          if (shouldReset == true) {
-            await SettingsService.resetPrayerOffsets();
-          }
+        if (shouldReset == true) {
+          await SettingsService.resetPrayerOffsets();
         }
       }
 
-      // 3. Update Times
+      // 3. Update Times & Reschedule Alarms natively
       _loadPrayerTimes();
+      await PrayerAlarmScheduler.schedulePrayerAlarms();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -258,6 +240,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
               Expanded(
                 child: ListView(
                   children: [
+                    _buildPrayerCard(context, "Imsak", l10n.imsak),
                     _buildPrayerCard(context, "Fajr", l10n.fajr),
                     _buildPrayerCard(context, "Dhuhr", l10n.dhuhr),
                     _buildPrayerCard(context, "Asr", l10n.asr),
@@ -474,6 +457,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                     foregroundColor: Colors.white),
                 onPressed: () async {
                   await SettingsService.setPrayerOffset(id, newOffset);
+                  await PrayerAlarmScheduler.schedulePrayerAlarms();
                   if (context.mounted) {
                     Navigator.pop(context);
                   }

@@ -1,7 +1,7 @@
 import 'package:adhan/adhan.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'notification_service.dart';
+
 import 'package:hive/hive.dart';
 import '../core/services/settings_service.dart';
 
@@ -13,6 +13,9 @@ class PrayerService with ChangeNotifier {
   Map<String, int> _offsets = {};
 
   PrayerService() {
+    // ✅ Immediate calculation with default coordinates to remove --:-- on first render
+    calculatePrayers();
+    // Then load real settings and recalculate
     _loadOffsets();
   }
 
@@ -58,6 +61,9 @@ class PrayerService with ChangeNotifier {
   }
 
   // Getters for adjusted prayer times
+  DateTime? get imsak =>
+      _prayerTimes?.fajr.subtract(const Duration(minutes: 15)).add(Duration(
+          minutes: (_offsets['imsak'] ?? 0) + SettingsService.manualOffset));
   DateTime? get fajr => _prayerTimes?.fajr.add(Duration(
       minutes: (_offsets['fajr'] ?? 0) + SettingsService.manualOffset));
   DateTime? get dhuhr => _prayerTimes?.dhuhr.add(Duration(
@@ -87,47 +93,47 @@ class PrayerService with ChangeNotifier {
     }
   }
 
-  /// Schedule notifications based on the current settings
-  Future<void> scheduleNotifications() async {
-    if (_prayerTimes == null) return;
-
-    debugPrint('⏳ 📅 Scheduling notifications...');
-
-    // List of prayers to be scheduled
-    final currentPrayers = {
-      'fajr': fajr,
-      'dhuhr': dhuhr,
-      'asr': asr,
-      'maghrib': maghrib,
-      'isha': isha,
-    };
-
-    int alarmId = 0;
-    final now = DateTime.now();
-
-    for (var entry in currentPrayers.entries) {
-      final prayerKey = entry.key; // lowercase key
-      final prayerTime = entry.value;
-
-      // Check if the specific prayer is enabled in settings
-      bool isEnabled = SettingsService.getPrayerNotification(prayerKey);
-
-      // Capitalize for display/ID consistency
-      final displayTitle = prayerKey[0].toUpperCase() + prayerKey.substring(1);
-
-      if (prayerTime != null && isEnabled && prayerTime.isAfter(now)) {
-        debugPrint('✅ Scheduling $displayTitle at $prayerTime');
-        await NotificationService.scheduleAdhan(
-            alarmId, displayTitle, prayerTime);
-      }
-      alarmId++;
-    }
-  }
+  // ⚠️ scheduleNotifications() was REMOVED.
+  // It used conflicting IDs (0,1,2,3,4) that overwrote adhanNotificationId and generalNotificationId.
+  // The ONLY correct scheduling system is PrayerAlarmScheduler in alarm_service.dart.
 
   PrayerTimes? get prayerTimes => _prayerTimes;
   SunnahTimes? get sunnahTimes => _sunnahTimes;
 
   Prayer get nextPrayer => _prayerTimes?.nextPrayer() ?? Prayer.none;
+
+  // ✅ 100% Reliable: returns the next prayer + its time, with a fallback to tomorrow's Fajr
+  MapEntry<Prayer, DateTime>? get nextUpcoming {
+    if (_prayerTimes == null) return null;
+
+    final now = DateTime.now();
+    final prayers = [
+      MapEntry(Prayer.fajr, fajr),
+      MapEntry(Prayer.dhuhr, dhuhr),
+      MapEntry(Prayer.asr, asr),
+      MapEntry(Prayer.maghrib, maghrib),
+      MapEntry(Prayer.isha, isha),
+    ];
+
+    // The first prayer whose time is after now
+    for (final entry in prayers) {
+      final t = entry.value;
+      if (t != null && t.isAfter(now)) return MapEntry(entry.key, t);
+    }
+
+    // All of today's prayers have ended → tomorrow's Fajr
+    final tomorrow = now.add(const Duration(days: 1));
+    final params = CalculationMethod.muslim_world_league.getParameters();
+    params.madhab = Madhab.shafi;
+    final tomorrowTimes = PrayerTimes(
+      _coordinates,
+      DateComponents.from(tomorrow),
+      params,
+    );
+    final tomorrowFajr = tomorrowTimes.fajr.add(Duration(
+        minutes: (_offsets['fajr'] ?? 0) + SettingsService.manualOffset));
+    return MapEntry(Prayer.fajr, tomorrowFajr);
+  }
 
   // Middle of the night time
   DateTime? get middleOfTheNight => _sunnahTimes?.middleOfTheNight;

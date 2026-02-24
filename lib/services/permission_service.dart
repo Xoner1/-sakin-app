@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:android_intent_plus/flag.dart';
@@ -93,10 +94,13 @@ class PermissionService {
 
     // If still denied (common on Android 14+), guide the user to settings
     try {
-      await const AndroidIntent(
+      final packageInfo = await PackageInfo.fromPlatform();
+      final packageName = packageInfo.packageName;
+
+      await AndroidIntent(
         action: 'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
-        data: 'package:com.example.sakin_app',
-        flags: [Flag.FLAG_ACTIVITY_NEW_TASK],
+        data: 'package:$packageName',
+        flags: const [Flag.FLAG_ACTIVITY_NEW_TASK],
       ).launch();
     } catch (e) {
       await openAppSettings();

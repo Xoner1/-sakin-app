@@ -4,34 +4,31 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:timezone/timezone.dart' as tz;
-import 'dart:io'; // Added for Platform check
+
 import 'notification_service.dart';
 import '../models/location_info.dart';
 import '../models/prayer_notification_settings.dart';
-import '../models/prayer_offsets.dart'; // Added import
-// import '../data/hive_database.dart'; // This import was in the instruction but seems redundant/incorrect for this file. Keeping existing imports.
+import '../core/services/settings_service.dart';
+import '../core/services/device_offset_service.dart';
 
 class PrayerAlarmScheduler {
   static const String _settingsBoxName = 'settings';
   static const String _lastScheduledKey = 'last_scheduled_date';
-  static const String _offsetsKey = 'prayer_offsets'; // Added constant
 
   /// Schedules prayer alarms/notifications for the next 30 days.
-  static Future<void> schedulePrayerAlarms() async {
+  /// Returns [true] if scheduling succeeded, [false] if location data is missing.
+  static Future<bool> schedulePrayerAlarms() async {
     final box = await Hive.openBox(_settingsBoxName);
-
-    // Load Offsets
-    final offsetsData = box.get(_offsetsKey);
-    final offsets = offsetsData != null
-        ? PrayerOffsets.fromJson(Map<String, dynamic>.from(offsetsData))
-        : PrayerOffsets();
 
     final locationData = box.get('cached_location');
     final settingsData = box.get('notification_settings');
 
+    final int devicePreEmptiveOffset =
+        await DeviceOffsetService.getDeviceSpecificOffset();
+
     if (locationData == null) {
       debugPrint('⚠️ Cannot schedule: No location data found.');
-      return;
+      return false; // ← caller knows to retry later
     }
 
     final location =
@@ -46,12 +43,26 @@ class PrayerAlarmScheduler {
     final params = adhan.CalculationMethod.muslim_world_league.getParameters();
     params.madhab = adhan.Madhab.shafi;
 
-    // 1. Cancel existing alarms to avoid duplicates
-    if (Platform.isAndroid) {
-      await AndroidAlarmManager.cancel(0);
-    }
+    // ✅ No legacy alarm cleanup needed:
+    // New IDs are date-based (e.g. 202602230) — far above any old ID range.
+    // Running cancel(0..350) was causing 351 useless calls on every app open.
 
     debugPrint('⏳ Scheduling prayers for 30 days starting from today...');
+    debugPrint(
+        '━━━━━━ TODAY\'s PRAYERS (${DateTime.now().toString().substring(0, 10)}) ━━━━━━');
+
+    // Log today's schedule first for easy verification
+    final todayDate = DateTime.now();
+    final todayComponents = adhan.DateComponents.from(todayDate);
+    final todayTimes = adhan.PrayerTimes(coordinates, todayComponents, params);
+    debugPrint('  📋 Fajr:   ${todayTimes.fajr.toLocal()}');
+    debugPrint('  📋 Dhuhr:  ${todayTimes.dhuhr.toLocal()}');
+    debugPrint('  📋 Asr:    ${todayTimes.asr.toLocal()}');
+    debugPrint('  📋 Maghrib:${todayTimes.maghrib.toLocal()}');
+    debugPrint('  📋 Isha:   ${todayTimes.isha.toLocal()}');
+    debugPrint(
+        '  📋 Location: lat=${coordinates.latitude}, lng=${coordinates.longitude}');
+    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     for (int i = 0; i < 30; i++) {
       final date = DateTime.now().add(Duration(days: i));
@@ -59,33 +70,63 @@ class PrayerAlarmScheduler {
       final prayerTimes =
           adhan.PrayerTimes(coordinates, dateComponents, params);
 
-      await _scheduleDayPrayers(prayerTimes, settings, offsets, i);
+      await _scheduleDayPrayers(
+          prayerTimes, settings, date, devicePreEmptiveOffset);
     }
 
     await box.put(_lastScheduledKey, DateTime.now().toIso8601String());
-    debugPrint('✅ Successfully scheduled 150 potential prayer alarms.');
+    debugPrint('✅ Successfully finished scheduling prayer alarms.');
+    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    return true;
   }
 
   static Future<void> _scheduleDayPrayers(
       adhan.PrayerTimes prayerTimes,
       PrayerNotificationSettings settings,
-      PrayerOffsets offsets,
-      int dayOffset) async {
+      DateTime date,
+      int deviceOffset) async {
+    // Combining user global manualOffset with the auto-calculated deviceOffset
+    final manualOffset = SettingsService.manualOffset + deviceOffset;
+
+    // Fetch individual sub-offsets saved by the user in the UI
+    final imsakOffset = SettingsService.getPrayerOffset('Imsak');
+    final fajrOffset = SettingsService.getPrayerOffset('Fajr');
+    final dhuhrOffset = SettingsService.getPrayerOffset('Dhuhr');
+    final asrOffset = SettingsService.getPrayerOffset('Asr');
+    final maghribOffset = SettingsService.getPrayerOffset('Maghrib');
+    final ishaOffset = SettingsService.getPrayerOffset('Isha');
+
     final prayers = {
-      'Fajr': prayerTimes.fajr.add(Duration(minutes: offsets.fajr)),
-      'Dhuhr': prayerTimes.dhuhr.add(Duration(minutes: offsets.dhuhr)),
-      'Asr': prayerTimes.asr.add(Duration(minutes: offsets.asr)),
-      'Maghrib': prayerTimes.maghrib.add(Duration(minutes: offsets.maghrib)),
-      'Isha': prayerTimes.isha.add(Duration(minutes: offsets.isha)),
+      'Imsak': prayerTimes.fajr
+          .subtract(const Duration(minutes: 15))
+          .add(Duration(minutes: imsakOffset + manualOffset)),
+      'Fajr':
+          prayerTimes.fajr.add(Duration(minutes: fajrOffset + manualOffset)),
+      'Dhuhr':
+          prayerTimes.dhuhr.add(Duration(minutes: dhuhrOffset + manualOffset)),
+      'Asr': prayerTimes.asr.add(Duration(minutes: asrOffset + manualOffset)),
+      'Maghrib': prayerTimes.maghrib
+          .add(Duration(minutes: maghribOffset + manualOffset)),
+      'Isha':
+          prayerTimes.isha.add(Duration(minutes: ishaOffset + manualOffset)),
     };
 
-    int baseId = dayOffset * 10; // Unique ID space for each day
+    // Generate a stable ID based on the date: YYYYMMDD0
+    // Example: 202402200 for Fajr on Feb 20, 2024
+    int baseId = (date.year * 10000 + date.month * 100 + date.day) * 10;
 
-    prayers.forEach((name, time) async {
+    // ✅ Use `for` loop instead of `forEach` — async/await is NOT respected inside forEach
+    for (final entry in prayers.entries) {
+      final name = entry.key;
+      final time = entry.value;
       bool isEnabled = false;
       int prayerId = baseId;
 
       switch (name) {
+        case 'Imsak':
+          isEnabled = settings.fajrEnabled; // Tie Imsak alarm to Fajr's setting
+          prayerId += 5;
+          break;
         case 'Fajr':
           isEnabled = settings.fajrEnabled;
           prayerId += 0;
@@ -114,22 +155,32 @@ class PrayerAlarmScheduler {
         } else if (defaultTargetPlatform == TargetPlatform.iOS) {
           await _scheduleIOSNotification(prayerId, name, time);
         }
+      } else {
+        // Log why this prayer was skipped
+        if (!isEnabled) {
+          debugPrint('  ⏭️ SKIPPED [$name] — disabled in settings');
+        } else {
+          debugPrint(
+              '  ⏭️ SKIPPED [$name] at ${time.toLocal()} — time already passed');
+        }
       }
-    });
+    }
   }
 
   static Future<void> _scheduleAndroidAlarm(
       int id, String prayerName, DateTime time) async {
-    await AndroidAlarmManager.oneShotAt(
+    final success = await AndroidAlarmManager.oneShotAt(
       time,
       id,
-      adhanAlarmCallback, // Reusing existing callback from notification_service.dart
+      adhanAlarmCallback,
       exact: true,
       wakeup: true,
       alarmClock: true,
       rescheduleOnReboot: true,
       params: {'prayerName': prayerName},
     );
+    debugPrint(
+        '  ${success ? '✅' : '❌'} ALARM [$prayerName] | ID=$id | at=${time.toLocal()} | success=$success');
   }
 
   static Future<void> _scheduleIOSNotification(

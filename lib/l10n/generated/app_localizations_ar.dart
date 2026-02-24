@@ -102,6 +102,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get minute => 'دقيقة';
 
   @override
+  String get imsak => 'الإمساك';
+
+  @override
   String get fajr => 'الفجر';
 
   @override

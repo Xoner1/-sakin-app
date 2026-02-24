@@ -202,20 +202,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildPrayerRing(ThemeData theme, bool isDark) {
     return Consumer<PrayerService>(
       builder: (context, prayerService, _) {
-        final nextPrayer = prayerService.nextPrayer;
-
         final l10n = AppLocalizations.of(context);
         if (l10n == null) return const SizedBox();
 
-        String prayerName = "Loading...";
+        String prayerName = "...";
         String prayerTime = "--:--";
         dynamic icon = HugeIcons.strokeRoundedMoon02;
         String nextPrayerName = l10n.nextPrayer;
 
-        if (prayerService.prayerTimes != null) {
-          final adjustedNext = prayerService.getAdjustedTime(nextPrayer);
+        final upcoming = prayerService.nextUpcoming;
+        if (upcoming != null) {
+          final prayer = upcoming.key;
+          final time = upcoming.value;
 
-          switch (nextPrayer) {
+          prayerTime = DateFormat.jm(l10n.localeName).format(time);
+
+          switch (prayer) {
             case adhan.Prayer.fajr:
               prayerName = l10n.fajr;
               icon = HugeIcons.strokeRoundedSun02;
@@ -236,22 +238,9 @@ class _HomeScreenState extends State<HomeScreen> {
               prayerName = l10n.isha;
               icon = HugeIcons.strokeRoundedMoon01;
               break;
-            case adhan.Prayer.none:
-              prayerName = l10n.fajr; // Rolls over to Fajr next day typically
-              icon = HugeIcons.strokeRoundedSun02;
-              break;
             default:
               prayerName = l10n.fajr;
-          }
-
-          if (adjustedNext != null) {
-            // Use local format (e.g. 12h or 24h depending on locale if needed, but jm is good)
-            prayerTime = DateFormat.jm(l10n.localeName).format(adjustedNext);
-          } else if (nextPrayer == adhan.Prayer.none) {
-            final fajr = prayerService.fajr;
-            if (fajr != null) {
-              prayerTime = DateFormat.jm(l10n.localeName).format(fajr);
-            }
+              icon = HugeIcons.strokeRoundedSun02;
           }
         }
 

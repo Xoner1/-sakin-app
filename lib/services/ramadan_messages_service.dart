@@ -91,11 +91,17 @@ class RamadanMessagesService {
     var scheduledDate =
         DateTime(now.year, now.month, now.day, randomHour, randomMinute);
 
-    // If the random time has already passed today, try to schedule for tomorrow?
-    // Or if it's passed, just show it immediately/soon?
-    // Let's say if passed, schedule for tomorrow.
+    // If the random time has already passed...
     if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
+      // If it's still early enough (e.g., before 9 PM), schedule it for later tonight
+      if (now.hour < 21) {
+        // Schedule between 15 mins to 2 hours from now
+        final delayMinutes = 15 + random.nextInt(105);
+        scheduledDate = now.add(Duration(minutes: delayMinutes));
+      } else {
+        // Too late, move to tomorrow
+        scheduledDate = scheduledDate.add(const Duration(days: 1));
+      }
     }
 
     final messageIndex = random.nextInt(_messages.length);

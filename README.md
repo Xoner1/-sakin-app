@@ -4,6 +4,14 @@
 ![Android](https://img.shields.io/badge/Android-12%2B-green?style=flat&logo=android)
 ![License](https://img.shields.io/badge/License-GPLv3-blue.svg)
 
+### 📲 Available Soon!
+<p align="left">
+  <a href="#coming-soon"><img src="https://img.shields.io/badge/Google_Play-Coming_in_a_few_days_⏳-041E42?style=for-the-badge&logo=google-play&logoColor=white" alt="Google Play"></a>
+  <a href="#coming-soon"><img src="https://img.shields.io/badge/App_Store-Coming_Soon_🚀-000000?style=for-the-badge&logo=apple&logoColor=white" alt="App Store"></a>
+</p>
+
+> **Status: 🟢 ALIVE & ACTIVE** — *We are currently in the final stages of our Google Play Store review process. Daily patches and improvements are being made to prepare for the official launch!*
+
 **Sakin** is a modern, privacy-focused Islamic lifestyle application built with Flutter. It is designed to be a sincere spiritual companion, offering accurate prayer times, ad-free experience, and complete offline functionality.
 
 **تطبيق ساكن** هو رفيقك المؤمن العصري. صُمم ليكون تطبيقاً صادقاً، خالياً من الإعلانات، ويعمل بكفاءة تامة دون الحاجة للإنترنت، مع تركيز كامل على الخصوصية وتحسين استهلاك البطارية.

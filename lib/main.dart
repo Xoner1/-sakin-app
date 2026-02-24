@@ -23,8 +23,9 @@ import 'services/location_service.dart';
 import 'core/services/settings_service.dart';
 import 'core/services/habit_service.dart';
 import 'services/battery_optimization_service.dart';
-import 'services/alarm_service.dart';
-import 'services/ramadan_messages_service.dart';
+import 'package:sakin_app/services/alarm_service.dart';
+import 'package:sakin_app/services/ramadan_messages_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'data/hive_database.dart';
 import 'data/repositories/misbaha_repository.dart';
@@ -102,6 +103,8 @@ class _AppBootstrapState extends State<AppBootstrap> {
       else
         Future.value(true),
       _initPermissions(),
+      // ✅ Reschedule alarms if the app was updated or the device was rebooted
+      _checkAndRescheduleAfterUpdate(),
     ]);
 
     tz.initializeTimeZones(); // Synchronous
@@ -121,6 +124,34 @@ class _AppBootstrapState extends State<AppBootstrap> {
       setState(() {
         _isInitialized = true;
       });
+    }
+  }
+
+  Future<void> _checkAndRescheduleAfterUpdate() async {
+    if (!Platform.isAndroid) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      const prefsKey = 'needs_reschedule_after_update';
+
+      final needsReschedule = prefs.getBool(prefsKey) ?? false;
+
+      if (needsReschedule) {
+        debugPrint('🔄 Update or reboot detected — rescheduling alarms...');
+        final success = await PrayerAlarmScheduler.schedulePrayerAlarms();
+
+        if (success) {
+          // ✅ Clear the flag only on actual success
+          await prefs.setBool(prefsKey, false);
+          debugPrint('✅ Alarms rescheduled successfully after update.');
+        } else {
+          // ⚠️ Location was not ready — keep the flag to retry on next launch
+          debugPrint(
+              '⚠️ Rescheduling failed (no location) — will retry on next launch.');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error checking reschedule flag: $e');
     }
   }
 

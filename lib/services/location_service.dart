@@ -82,8 +82,9 @@ class LocationService with ChangeNotifier {
       // Save location to Hive
       await _saveLocationToCache(_currentLocation!);
 
-      // Trigger prayer scheduling for the new location
-      await PrayerAlarmScheduler.schedulePrayerAlarms();
+      // ✅ Do NOT call schedulePrayerAlarms() here.
+      // Scheduling is handled centrally in MainLayout.initState()
+      // to avoid duplicate alarms.
 
       _isLoading = false;
       notifyListeners();
@@ -114,6 +115,9 @@ class LocationService with ChangeNotifier {
         );
 
         await _saveLocationToCache(_currentLocation!);
+
+        // ✅ Schedule alarms after manual location change.
+        // This is intentional — user explicitly changed location.
         await PrayerAlarmScheduler.schedulePrayerAlarms();
 
         _isLoading = false;

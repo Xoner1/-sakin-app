@@ -102,6 +102,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minute => 'minute';
 
   @override
+  String get imsak => 'Imsak';
+
+  @override
   String get fajr => 'Fajr';
 
   @override

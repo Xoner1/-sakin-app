@@ -284,6 +284,12 @@ abstract class AppLocalizations {
   /// **'دقيقة'**
   String get minute;
 
+  /// No description provided for @imsak.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإمساك'**
+  String get imsak;
+
   /// No description provided for @fajr.
   ///
   /// In ar, this message translates to:

@@ -78,10 +78,24 @@
             </intent-filter>
         </receiver>
 
+        <!-- إعادة جدولة الأذانات بعد تحديث التطبيق أو إعادة تشغيل الجهاز -->
+        <receiver
+            android:name=".AppUpdateReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <!-- يُطلق عند تحديث التطبيق من Play Store -->
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <!-- يُطلق عند إعادة تشغيل الجهاز (دعم إضافي) -->
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
+
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/notification_icon" />
             
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
 
     </application>
     <!-- Required to query activities that can process text, see:

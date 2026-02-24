@@ -1,10 +1,14 @@
+import 'dart:ui';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:adhan/adhan.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
+import 'dart:async'; // Added for Timer
 import 'adhan_player.dart';
 
 // Callback to handle notification taps
@@ -17,6 +21,13 @@ class NotificationService {
 
   // Callback invoked when an adhkar notification is tapped
   static NotificationTapCallback? onAdhkarTap;
+
+  // ── Notification IDs (named constants — never use raw numbers) ──
+  static const int generalNotificationId = 0;
+  static const int adhanNotificationId = 1;
+  static const int stickyNotificationId = 99;
+  static const int stickyAlarmId = 888;
+  static const int testNotificationId = 999;
 
   static Future<void> init() async {
     // UPDATED: Use localized notification icon
@@ -39,14 +50,15 @@ class NotificationService {
     await _notificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: onNotificationTap,
+      onDidReceiveBackgroundNotificationResponse: onBackgroundNotificationTap,
     );
 
-    // Create the notification channel for the foreground service
+    // ── Foreground Service Channel (Silent Background) ──
     const AndroidNotificationChannel foregroundChannel =
         AndroidNotificationChannel(
       'sakin_foreground',
-      'Sakin Service',
-      description: 'Background service for prayer times',
+      'خدمة ساكن',
+      description: 'خدمة خلفية لمتابعة مواقيت الصلاة',
       importance: Importance.low,
       enableVibration: false,
       playSound: false,
@@ -57,12 +69,12 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(foregroundChannel);
 
-    // Create the regular notification channel
+    // ── General Notifications Channel ──
     const AndroidNotificationChannel regularChannel =
         AndroidNotificationChannel(
       'sakin_channel',
-      'Sakin Notifications',
-      description: 'Prayer time notifications',
+      'إشعارات ساكن',
+      description: 'إشعارات مواقيت الصلاة',
       importance: Importance.max,
     );
 
@@ -71,16 +83,14 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(regularChannel);
 
-    // Create a special channel for Adhan (high priority with sound) - UPDATED V6
+    // ── Adhan Channel (Highest priority with sound) ──
     const AndroidNotificationChannel adhanChannel = AndroidNotificationChannel(
-      'sakin_adhan_v6', // Match the ID used in show()
-      'Adhan Alarm Final', // Match the name
-      description: 'Full screen adhan notification',
+      'sakin_adhan_v7',
+      'أذان الصلاة',
+      description: 'إشعار الأذان بصوت كامل عند دخول وقت الصلاة',
       importance: Importance.max,
       enableVibration: true,
-      playSound: true,
-      sound: RawResourceAndroidNotificationSound(
-          'adhan'), // Explicitly set sound here too
+      playSound: false,
     );
 
     await _notificationsPlugin
@@ -88,7 +98,7 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(adhanChannel);
 
-    // Create a channel specifically for Adhkar
+    // ── Prayer Adhkar Channel ──
     const AndroidNotificationChannel adhkarChannel = AndroidNotificationChannel(
       'sakin_adhkar',
       'أذكار الصلاة',
@@ -102,6 +112,105 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(adhkarChannel);
+
+    // ── Upcoming Prayer Channel (Sticky - Silent) ──
+    const AndroidNotificationChannel stickyChannel = AndroidNotificationChannel(
+      'sakin_sticky',
+      'الصلاة القادمة',
+      description: 'إشعار دائم يُظهر الوقت المتبقي حتى الصلاة القادمة',
+      importance: Importance.low,
+      enableVibration: false,
+      playSound: false,
+    );
+
+    await _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(stickyChannel);
+
+    // ── Ramadan Messages Channel ──
+    const AndroidNotificationChannel ramadanChannel =
+        AndroidNotificationChannel(
+      'ramadan_messages_channel',
+      'رسائل رمضانية',
+      description: 'رسائل تحفيزية وتذكيرية خلال شهر رمضان المبارك',
+      importance: Importance.defaultImportance,
+      enableVibration: true,
+      playSound: true,
+    );
+
+    await _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(ramadanChannel);
+
+    // ✅ Automated cleanup of old channels on each update
+    if (Platform.isAndroid) {
+      await _migrateChannelsIfNeeded();
+    }
+  }
+
+  /// Checks the app version — if it has changed since the last run,
+  /// it automatically deletes old notification channels without manual intervention.
+  ///
+  /// How it works:
+  /// 1. Reads current version from [package_info_plus]
+  /// 2. Compares it with the saved version in [SharedPreferences]
+  /// 3. If different → deletes old channels → saves the new version
+  static Future<void> _migrateChannelsIfNeeded() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = packageInfo.version; // e.g. "2.1.2"
+
+      const versionKey = 'notification_channel_version';
+      final storedVersion = prefs.getString(versionKey);
+
+      if (storedVersion == currentVersion) {
+        // Same version — nothing to do
+        return;
+      }
+
+      debugPrint(
+          '🔄 App updated: $storedVersion → $currentVersion. Migrating notification channels...');
+
+      final plugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+      // Comprehensive list of all old channels across app history
+      // Add any old channel ID here — the app will delete it automatically
+      const obsoleteChannelIds = [
+        'sakin_adhan',
+        'sakin_adhan_v2',
+        'sakin_adhan_v3',
+        'sakin_adhan_v4',
+        'sakin_adhan_v5',
+        // Do not add sakin_adhan_v7 here because it is the current version
+      ];
+
+      for (final channelId in obsoleteChannelIds) {
+        await plugin?.deleteNotificationChannel(channelId);
+        debugPrint('🗑️ Deleted old channel: $channelId');
+      }
+
+      // Save the new version — this will not be repeated until the next update
+      await prefs.setString(versionKey, currentVersion);
+      debugPrint('✅ Channel migration complete for v$currentVersion');
+    } catch (e) {
+      debugPrint('⚠️ Channel migration error (non-fatal): $e');
+    }
+  }
+
+  /// Background Notification interaction
+  @pragma('vm:entry-point')
+  static Future<void> onBackgroundNotificationTap(
+      NotificationResponse response) async {
+    WidgetsFlutterBinding.ensureInitialized();
+    DartPluginRegistrant.ensureInitialized();
+
+    if (response.actionId == 'stop_adhan') {
+      await stopAdhan();
+    }
   }
 
   /// Handle notification interaction
@@ -119,45 +228,43 @@ class NotificationService {
     }
   }
 
-  // Show an immediate notification (for testing)
+  // Show immediate notification (For testing)
   static Future<void> showNotification(String title, String body) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
       'sakin_channel',
-      'Sakin Notifications',
+      'إشعارات ساكن',
       importance: Importance.max,
       priority: Priority.high,
-      // UPDATED: Using custom icons
       icon: 'notification_icon',
       largeIcon: DrawableResourceAndroidBitmap('notification_large_icon'),
-      color: Color(0xFF673AB7), // Colors.deepPurple
+      color: Color(0xFF673AB7),
     );
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
 
     await _notificationsPlugin.show(
-      0,
+      generalNotificationId,
       title,
       body,
       platformChannelSpecifics,
     );
   }
 
-  // Show prayer notification while playing Adhan (Old Method)
+  // Prayer notification with Adhan playback
   static Future<void> showPrayerNotificationWithAdhan(String prayerName) async {
     await _adhanPlayer.playAdhan();
 
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'sakin_adhan',
-      'Prayer Adhan',
-      channelDescription: 'Adhan notifications for prayer times',
+      'sakin_adhan_v6',
+      'أذان الصلاة',
+      channelDescription: 'إشعار الأذان عند دخول وقت الصلاة',
       importance: Importance.max,
       priority: Priority.high,
       enableVibration: true,
       playSound: false,
       styleInformation: BigTextStyleInformation(''),
-      // UPDATED: Icons
       icon: 'notification_icon',
       largeIcon: DrawableResourceAndroidBitmap('notification_large_icon'),
       color: Color(0xFF673AB7),
@@ -167,34 +274,11 @@ class NotificationService {
         NotificationDetails(android: androidPlatformChannelSpecifics);
 
     await _notificationsPlugin.show(
-      1,
+      adhanNotificationId,
       '🕌 حان وقت صلاة $prayerName',
       'اللهم إني أسألك الثبات في الأمر والعزيمة على الرشد',
       platformChannelSpecifics,
     );
-  }
-
-  // Schedule notifications for the entire week
-  static Future<void> scheduleForWeek(
-      Map<DateTime, Map<String, DateTime>> schedule) async {
-    // Basic ID generation: DayOfYear * 10 + PrayerIndex
-    // This allows replacing existing alarms for the same slot
-    schedule.forEach((date, prayers) {
-      int prayerIndex = 0;
-      prayers.forEach((name, time) {
-        // Generate a unique ID for this prayer slot
-        // Using distinct IDs ensures we don't conflict with other alarms
-        // Assuming max 5 prayers per day.
-        // DayOfYear calculation (simplistic):
-        int dayOfYear = int.parse(intl.DateFormat("D").format(date));
-        int id = 10000 + (dayOfYear * 10) + prayerIndex;
-
-        if (time.isAfter(DateTime.now())) {
-          scheduleAdhan(id, name, time);
-        }
-        prayerIndex++;
-      });
-    });
   }
 
   // Schedule Adhan as an alarm using AndroidAlarmManager
@@ -227,14 +311,35 @@ class NotificationService {
 
   // Immediate test (Sanity Check)
   static Future<void> showImmediateNotification() async {
-    // Use the same function to ensure consistent behavior
-    await adhanAlarmCallback(999, {'prayerName': 'تجربة فورية'});
+    await adhanAlarmCallback(testNotificationId, {'prayerName': 'تجربة فورية'});
   }
 
   // Stop Adhan playback and cancel notifications
   static Future<void> stopAdhan() async {
-    await _adhanPlayer.stopAdhan();
-    await _notificationsPlugin.cancelAll();
+    // Tell the background audio isolate to stop playing via SharedPreferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('stop_adhan_flag', true);
+    } catch (e) {
+      debugPrint('stopAdhan: SharedPreferences error $e');
+    }
+
+    // ✅ Release wakelock immediately — don't wait for the 3-min delayed timer
+    try {
+      await WakelockPlus.disable();
+    } catch (_) {}
+
+    try {
+      await _adhanPlayer.stopAdhan();
+    } catch (e) {
+      debugPrint('stopAdhan: _adhanPlayer error $e');
+    }
+
+    try {
+      await _notificationsPlugin.cancelAll();
+    } catch (e) {
+      debugPrint('stopAdhan: cancelAll error $e');
+    }
   }
 
   // Check if app launched from Adhan notification
@@ -250,23 +355,20 @@ class NotificationService {
 
   // --- Sticky Notification Logic (Background Loop) ---
 
-  static const int _stickyNotificationId = 99;
-  static const int _stickyAlarmId = 888;
+  // IDs moved to top-level constants above (stickyNotificationId / stickyAlarmId)
 
   /// Start the background loop to update "Next Prayer" notification every minute
   static Future<void> startStickyNotificationLoop(
       double lat, double long) async {
-    // Initial show
     await _updateStickyNotification({'lat': lat, 'long': long});
 
     if (Platform.isAndroid) {
-      // Schedule recursive updates
       await AndroidAlarmManager.periodic(
         const Duration(minutes: 1),
-        _stickyAlarmId,
+        stickyAlarmId,
         _stickyNotificationCallback,
         exact: true,
-        wakeup: true, // Wake up to update time
+        wakeup: true,
         rescheduleOnReboot: true,
         params: {'lat': lat, 'long': long},
       );
@@ -275,16 +377,14 @@ class NotificationService {
 
   static Future<void> stopStickyNotificationLoop() async {
     if (Platform.isAndroid) {
-      await AndroidAlarmManager.cancel(_stickyAlarmId);
+      await AndroidAlarmManager.cancel(stickyAlarmId);
     }
-    await _notificationsPlugin.cancel(_stickyNotificationId);
+    await _notificationsPlugin.cancel(stickyNotificationId);
   }
 
-  // Helper to calculate and show immediately (for testing or app resume)
   static Future<void> _updateStickyNotification(
       Map<String, dynamic> params) async {
-    // We can just call the callback manually
-    await _stickyNotificationCallback(_stickyAlarmId, params);
+    await _stickyNotificationCallback(stickyAlarmId, params);
   }
 }
 
@@ -298,9 +398,14 @@ Future<void> adhanAlarmCallback(int id, Map<String, dynamic> params) async {
   // 1. Acquire Wakelock immediately to prevent sleep during setup
   try {
     await WakelockPlus.enable();
-    // Disable after 3 minutes (max adhan duration) to be safe
-    Future.delayed(const Duration(minutes: 3), () async {
-      await WakelockPlus.disable();
+    // Use an explicit Timer instead of Future.delayed.
+    // In background isolates on Android, Timer is sometimes preserved better
+    // than implicit Futures, ensuring the wakelock is released.
+    Timer(const Duration(minutes: 3), () async {
+      try {
+        await WakelockPlus.disable();
+        debugPrint('Wakelock auto-released after 3 minutes');
+      } catch (_) {}
     });
   } catch (e) {
     debugPrint('Wakelock error: $e');
@@ -318,53 +423,79 @@ Future<void> adhanAlarmCallback(int id, Map<String, dynamic> params) async {
   await notificationsPlugin.initialize(
     initializationSettings,
     onDidReceiveNotificationResponse: NotificationService.onNotificationTap,
+    onDidReceiveBackgroundNotificationResponse:
+        NotificationService.onBackgroundNotificationTap,
   );
 
-  // 3. Play Sound & Show Notification
-  // We recreate the channel details here to ensure they are fresh
-  const AndroidNotificationDetails androidPlatformChannelSpecifics =
-      AndroidNotificationDetails(
-    'sakin_adhan_v6', // BUMPED VERSION to force recreation
-    'Adhan Alarm Final',
-    channelDescription: 'Full screen adhan notification',
-    importance: Importance.max,
-    priority: Priority.max,
-    sound: RawResourceAndroidNotificationSound('adhan'),
-    playSound: true,
-    icon: 'notification_icon',
-    largeIcon: DrawableResourceAndroidBitmap('notification_large_icon'),
-    fullScreenIntent: true, // Show full screen to ensure visibility
-    category: AndroidNotificationCategory.alarm,
-    visibility: NotificationVisibility.public,
-    audioAttributesUsage: AudioAttributesUsage.alarm,
-    enableVibration: true,
-    autoCancel: false,
-    ongoing: true, // Cannot be dismissed by swipe
-    color: Color.fromARGB(255, 67, 107, 62),
-    // ACTIONS
-    actions: <AndroidNotificationAction>[
-      AndroidNotificationAction(
-        'stop_adhan',
-        'إيقاف الأذان',
-        icon: DrawableResourceAndroidBitmap('notification_icon'),
-        showsUserInterface: false, // Don't open app on stop
-        cancelNotification: true,
-      ),
-    ],
-  );
+  // 3. Configure Android Notification Details
+  AndroidNotificationDetails androidPlatformChannelSpecifics;
+  String title;
+  String body;
 
-  const NotificationDetails platformChannelSpecifics = NotificationDetails(
+  if (prayerName == 'Imsak') {
+    // Imsak gets a standard notification with a default sound (no full Adhan, no full screen)
+    androidPlatformChannelSpecifics = const AndroidNotificationDetails(
+      'sakin_channel', // Use the regular channel which has sound enabled natively
+      'إشعارات ساكن',
+      importance: Importance.max,
+      priority: Priority.max,
+      icon: 'notification_icon',
+      enableVibration: true,
+      color: Color.fromARGB(255, 67, 107, 62),
+    );
+    title = 'تذكير بالإمساك';
+    body = 'الرجاء التوقف عن الأكل والشرب، اقترب أذان الفجر.';
+  } else {
+    // Regular Prayers get the full Adhan experience
+    androidPlatformChannelSpecifics = const AndroidNotificationDetails(
+      'sakin_adhan_v7',
+      'أذان الصلاة',
+      channelDescription: 'إشعار الأذان بصوت كامل عند دخول وقت الصلاة',
+      importance: Importance.max,
+      priority: Priority.max,
+      playSound: false,
+      icon: 'notification_icon',
+      fullScreenIntent: true,
+      category: AndroidNotificationCategory.alarm,
+      visibility: NotificationVisibility.public,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      enableVibration: true,
+      autoCancel: false,
+      ongoing: true, // Cannot be swiped away
+      color: Color.fromARGB(255, 67, 107, 62),
+      // Action buttons
+      actions: <AndroidNotificationAction>[
+        AndroidNotificationAction(
+          'stop_adhan',
+          'إيقاف الأذان',
+          icon: DrawableResourceAndroidBitmap('notification_icon'),
+          showsUserInterface: false, // Prevents opening the app
+          cancelNotification: true, // Automatically dismisses the notification
+        ),
+      ],
+    );
+    title = 'حان وقت صلاة $prayerName';
+    body = 'اضغط لإيقاف الأذان';
+  }
+
+  final NotificationDetails platformChannelSpecifics = NotificationDetails(
     android: androidPlatformChannelSpecifics,
   );
 
   debugPrint('🔔 Showing Notification for $prayerName');
   await notificationsPlugin.show(
     id,
-    'حان وقت صلاة $prayerName',
-    'اضغط لإيقاف الأذان',
+    title,
+    body,
     platformChannelSpecifics,
-    payload: 'adhan',
+    payload: prayerName == 'Imsak' ? 'imsak' : 'adhan',
   );
+
+  // 4. Play Adhan manually using AdhanPlayer in this background isolate.
+  // This will loop and poll until the user presses 'Stop Adhan'.
+  if (prayerName != 'Imsak') {
+    await AdhanPlayer().playAdhan();
+  }
 }
 
 @pragma('vm:entry-point')
@@ -385,19 +516,30 @@ Future<void> _stickyNotificationCallback(
     final date = DateComponents.from(DateTime.now());
     final prayerTimes = PrayerTimes(coordinates, date, calcParams);
 
-    final next = prayerTimes.nextPrayer();
-    final nextTime = prayerTimes.timeForPrayer(next);
+    var next = prayerTimes.nextPrayer();
+    var nextTime = prayerTimes.timeForPrayer(next);
 
     if (next == Prayer.none || nextTime == null) {
-      // End of day, maybe show fajr? For now just return or show something generic
-      return;
+      // End of day (after Isha), show tomorrow's Fajr
+      next = Prayer.fajr;
+      final tomorrow = DateTime.now().add(const Duration(days: 1));
+      final tomorrowTimes = PrayerTimes(
+        coordinates,
+        DateComponents.from(tomorrow),
+        calcParams,
+      );
+      nextTime = tomorrowTimes.fajr;
     }
 
     // 3. Format Title & Body
     final now = DateTime.now();
     final diff = nextTime.difference(now);
 
-    if (diff.isNegative) return; // Should not happen if nextPrayer is correct
+    if (diff.isNegative) {
+      debugPrint(
+          '⚠️ Warning: Next prayer time is in the past. Re-evaluating...');
+      return;
+    }
 
     String prayerName = '';
     switch (next) {
@@ -437,22 +579,21 @@ Future<void> _stickyNotificationCallback(
       remainingString = "$minutes دقيقة";
     }
 
-    // 3. Show Sticky Notification
+    // ── Sticky Upcoming Prayer Notification ──
     final FlutterLocalNotificationsPlugin notificationsPlugin =
         FlutterLocalNotificationsPlugin();
 
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-      'sakin_sticky', // ID
-      'Next Prayer', // Name
-      channelDescription: 'Ongoing notification for next prayer',
-      importance: Importance.low, // Low importance so it doesn't pop up
+      'sakin_sticky',
+      'الصلاة القادمة',
+      channelDescription: 'إشعار دائم يُظهر الوقت المتبقي حتى الصلاة القادمة',
+      importance: Importance.low,
       priority: Priority.low,
       ongoing: true,
       autoCancel: false,
       showWhen: false,
       icon: 'notification_icon',
-      // No sound
       playSound: false,
       enableVibration: false,
     );
