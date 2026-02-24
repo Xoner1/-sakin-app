@@ -85,12 +85,14 @@ class NotificationService {
 
     // ── Adhan Channel (Highest priority with sound) ──
     const AndroidNotificationChannel adhanChannel = AndroidNotificationChannel(
-      'sakin_adhan_v7',
+      'sakin_adhan_v8',
       'أذان الصلاة',
       description: 'إشعار الأذان بصوت كامل عند دخول وقت الصلاة',
       importance: Importance.max,
       enableVibration: true,
-      playSound: false,
+      playSound: true,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      sound: RawResourceAndroidNotificationSound('adhan'),
     );
 
     await _notificationsPlugin
@@ -185,7 +187,9 @@ class NotificationService {
         'sakin_adhan_v3',
         'sakin_adhan_v4',
         'sakin_adhan_v5',
-        // Do not add sakin_adhan_v7 here because it is the current version
+        'sakin_adhan_v6',
+        'sakin_adhan_v7',
+        // Do not add sakin_adhan_v8 here because it is the current version
       ];
 
       for (final channelId in obsoleteChannelIds) {
@@ -448,12 +452,13 @@ Future<void> adhanAlarmCallback(int id, Map<String, dynamic> params) async {
   } else {
     // Regular Prayers get the full Adhan experience
     androidPlatformChannelSpecifics = const AndroidNotificationDetails(
-      'sakin_adhan_v7',
+      'sakin_adhan_v8',
       'أذان الصلاة',
       channelDescription: 'إشعار الأذان بصوت كامل عند دخول وقت الصلاة',
       importance: Importance.max,
       priority: Priority.max,
-      playSound: false,
+      playSound: true,
+      sound: RawResourceAndroidNotificationSound('adhan'),
       icon: 'notification_icon',
       fullScreenIntent: true,
       category: AndroidNotificationCategory.alarm,
